@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y \
   unzip \
   && apt-get clean
 
-ENV GRPC_RELEASE_TAG v1.16.0
+ENV GRPC_RELEASE_TAG v1.12.0
 ENV CALCULATOR_BUILD_PATH /usr/local/calculator
 
 RUN git clone -b ${GRPC_RELEASE_TAG} https://github.com/grpc/grpc /var/local/git/grpc && \
