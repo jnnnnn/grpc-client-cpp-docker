@@ -12,7 +12,7 @@ gRPC CXX image](https://hub.docker.com/r/grpc/cxx/~/dockerfile/).
 git clone https://github.com/npclaudiu/grpc-cpp-docker.git
 cd grpc-cpp-docker
 docker build -t calculator .
-docker run --rm -it calculator
+docker run --network host --rm -it calculator
 ```
 
 To run the shell instead of starting the server hosting the calculator service you can use:
