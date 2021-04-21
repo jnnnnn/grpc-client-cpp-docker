@@ -15,8 +15,6 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(calculator
-    calculator_service.cpp
-    calculator_service.hpp
     calculator_service.pb.cc
     calculator_service.pb.h
     calculator_service.grpc.pb.cc

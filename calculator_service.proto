@@ -1,25 +1,181 @@
-syntax = "proto3";
+syntax = 'proto3';
 
-package calculator.proto;
+package Iress.Wealth;
 
-service Calculator {
-    rpc Compute(ComputeRequest) returns (ComputeResponse) {}
+option java_multiple_files = true;
+option java_package = "com.iress.tradinginterfaces";
+option java_outer_classname = "Wealth";
+
+import "google/protobuf/timestamp.proto";
+
+enum SecurityIDSource {
+  UNKNOWN = 0;
+  CUSIP = 1;
+  SEDOL = 2;
+  ISIN = 4;
+  RIC = 5;
+  EXCHANGE = 8;
 }
 
-enum Operator {
-    ADD = 0;
-    SUB = 1;
-    MUL = 2;
-    DIV = 3;
-    POW = 4;
+enum OrderSide {
+  Unknown = 0;
+  Buy = 1;
+  Sell = 2;
+  ShortSell = 5;
+  ShortSellExempt = 6;
+  Undisclosed = 7;
+  Cross = 8;
+  CrossShort = 9;
+  CrossShortExempt = 10;
+  AsDefined = 66; // 'B'
+  Opposite = 67;  // 'C'
+  SellUndisclosed = 72; // 'H'
 }
 
-message ComputeRequest {
-    Operator operator = 1;
-    double lhs = 2;
-    double rhs = 3;
+message SecurityID {
+  string security_id = 1;
+  SecurityIDSource id_source = 2;
 }
 
-message ComputeResponse {
-    double result = 1;
+message Instrument {
+  string symbol = 1;
+  string security_exchange = 2;
+  repeated SecurityID security_id = 3;
+  string currency = 4;
+}
+
+// Requests
+
+message OrderCreateRequest {
+  string client_order_id = 1;
+  Instrument instrument = 2;
+  OrderSide side = 3;
+  string order_type = 4;
+  string time_in_force = 5;
+  uint64 iosplus_order_number = 6;
+  double volume = 7;
+  double limit_price = 8;
+  double order_value = 9;
+  map<string, string> execution_instructions = 10;
+  string ios_account_code = 11;
+}
+
+message MultiLegOrderCreateRequest {
+  OrderCreateRequest parent_order = 1;
+  repeated OrderCreateRequest child_orders = 2;
+}
+
+message PingRequest {
+  string test = 1;
+}
+
+message PollTradesRequest {
+  string poll_request_id = 1;
+  string last_trade_id = 2;
+  google.protobuf.Timestamp last_trade_datetime = 3;
+}
+
+// Replies
+
+message OrderAcknowledgement {
+  string client_order_id = 1;
+  string order_id = 2;
+  string external_reference = 3;
+
+  // Optional - to be used in cases where an order trades immediately.
+  repeated Trade trade = 4;
+}
+
+message OrderReject {
+  string client_order_id = 1;
+  string external_reference = 2;
+  string error_message = 3;
+}
+
+message OrderPending {
+  string client_order_id = 1;
+  // This field is a handle to a pending response. If WealthTI rececives this message, it means it must poll
+  // for the response using this ID field. The service will use this 'pending response' concept in cases where
+  // it cannot delivery a response immediately.
+  string pending_id = 2;
+}
+
+message OrderResponse {
+  oneof reply {
+    OrderAcknowledgement acknowledgement = 1;
+    OrderReject reject = 2;
+    OrderPending pending = 3;
+  }
+}
+
+message MultiLegChildOrderAcknowledgement {
+  string leg_id = 1;
+  Instrument instrument = 2;
+  OrderSide side = 3;
+}
+
+message MultiLegChildOrderReject {
+  Instrument instrument = 1;
+  OrderSide side = 2;
+  string error_message = 3;
+}
+
+message MultiLegOrderAcknowledgement {
+  OrderAcknowledgement parent_order = 1;
+  repeated MultiLegChildOrderAcknowledgement child_orders = 2;
+}
+
+message MultiLegOrderReject {
+  OrderReject parent_order = 1;
+  repeated MultiLegChildOrderReject child_orders = 2;
+}
+
+message MultiLegOrderResponse {
+  oneof reply {
+    MultiLegOrderAcknowledgement acknowledgement = 1;
+    MultiLegOrderReject reject = 2;
+    OrderPending pending = 3;
+  }
+}
+
+message AnyOrderResponse {
+  OrderPending original_pending = 1;
+  oneof response {
+    OrderResponse order = 2;
+    MultiLegOrderResponse multi_leg_order = 3;
+  }
+}
+
+message PingResponse {
+  message ServiceHealth {
+    string service_name = 1;
+    bool is_ok = 2;
+    string status_message = 3;
+  }
+
+  string test = 1;
+  repeated ServiceHealth services = 2;
+}
+
+message Trade {
+  string poll_request_id = 1;
+  string external_trade_id = 2;
+  string external_reference = 3;
+  string order_id = 4;
+  OrderSide side = 5;
+  google.protobuf.Timestamp utc_trade_datetime = 6;
+  double price = 7;
+  double volume = 8;
+  double value = 10;
+  map<string, string> trade_markers = 11;
+}
+
+// Services
+
+service WealthService {
+  rpc Ping(PingRequest) returns (PingResponse) {}
+  rpc CreateOrder(OrderCreateRequest) returns (OrderResponse) {}
+  rpc PollForTrades(PollTradesRequest) returns (stream Trade) {}
+  rpc CreateMultiLegOrder(MultiLegOrderCreateRequest) returns (MultiLegOrderResponse) {}
+  rpc PollForPendingResponses(stream OrderPending) returns (stream AnyOrderResponse) {}
 }
