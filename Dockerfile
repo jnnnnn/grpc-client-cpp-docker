@@ -18,18 +18,18 @@
 FROM debian:stretch as build
 
 RUN apt-get update && apt-get install -y \
-  autoconf \
-  automake \
-  build-essential \
-  cmake \
-  curl \
-  g++ \
-  git \
-  libtool \
-  make \
-  pkg-config \
-  unzip \
-  && apt-get clean
+    autoconf \
+    automake \
+    build-essential \
+    cmake \
+    curl \
+    g++ \
+    git \
+    libtool \
+    make \
+    pkg-config \
+    unzip \
+    && apt-get clean
 
 ENV GRPC_RELEASE_TAG v1.12.0
 ENV CALCULATOR_BUILD_PATH /usr/local/calculator
@@ -57,7 +57,7 @@ RUN echo "-- building calculator" && \
     mkdir -p bin && \
     ldd calculator | grep "=> /" | awk '{print $3}' | xargs -I '{}' cp -v '{}' bin/ && \
     mv calculator bin/calculator && \
-    echo "LD_LIBRARY_PATH=/opt/calculator/:\$LD_LIBRARY_PATH ./calculator" > bin/start.sh && \
+    echo "LD_LIBRARY_PATH=/opt/calculator/:\$LD_LIBRARY_PATH GRPC_VERBOSITY=DEBUG GRPC_TRACE=all ./calculator" > bin/start.sh && \
     chmod +x bin/start.sh
 
 WORKDIR $CALCULATOR_BUILD_PATH
